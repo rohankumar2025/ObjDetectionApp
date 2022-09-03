@@ -11,49 +11,46 @@ import SwiftyJSON
 
 let UIPink = Color.init(red: 1, green: 0.2, blue: 0.56)
 
-let AIURL = "https://askai.aiclub.world/018cb7b9-ad1c-4c60-84a1-267fac249865" // REPLACE WITH YOUR AI
+let AIURL = "https://askai.aiclub.world/018cb7b9-ad1c-4c60-84a1-267fac249865" // REPLACE WITH YOUR AI LINK
+
 let COMPRESSION_QUALITY = 0.05 // Amount of compression done on image (Higher Value = faster, less accurate)
 let PYR_SCALE = 1.75 // Scale factor used in imagePyramid() function (Higher Value = faster, less accurate)
 let WIN_STEP = 36 // Size of step that the Sliding Window is taking (Higher Value = faster, less accurate)
 let MAX_NUM_ATTEMPTS = 3 // Maximum number of attempts to detect objects (Higher Value = slower, more accurate)
-let STARTING_MIN_CONF_SCORE = 0.93 // Minimum threshold to be beat for a frame to be counted as an object (Higher Value = slower, more accurate)
-let ROI_FRACTION = 0.2 // Fraction of image taken up by size of object (Ex: face takes up about 20% of pictures)
+let STARTING_MIN_CONF_SCORE = 0.93 // Minimum threshold to be beat for a frame to be counted as an object (Higher Value = slower, more accurate) -- threshold is reduced upon each attempt if no objects are detected
+let ROI_FRACTION = CGSize(width: 0.2, height: 0.2) // Fraction of image taken up by size of object (Ex: face takes up about 20% of pictures)
 
 
 struct ContentView: View {
-    @State private var predictedAgeGroup = " "
-    @State private var showSheet = false
-    @State private var showingImagePicker = false
-    @State private var sourceType: UIImagePickerController.SourceType = .camera
-    @State private var inputImage: UIImage? = UIImage(named: "default")
-    @State private var isLoading = false
-    @State private var numAttemptsToDetectObj = 0
-    
-
+    @State private var predictedAgeGroup = " " // String value for prediction displayed on screen
+    @State private var showSheet = false // Boolean state variable to toggle action sheet (used to pick camera source type)
+    @State private var showingImagePicker = false // Boolean state variable to toggle sheet that displays camera or photo library
+    @State private var sourceType: UIImagePickerController.SourceType = .camera // State variable holds user choice of which source type to use
+    @State private var inputImage: UIImage? = UIImage(named: "default") // Stores user inputted image
+    @State private var isLoading = false // Boolean state variable to toggle loading circle on screen
+    @State private var numAttemptsToDetectObj = 0 // Global variable representing number of attempts made to detect objects (stops algorithm once value reaches a programmer-defined threshold)
     
     var body: some View {
-        ZStack {
-            // Main view
-            VStack(spacing: 0) {
-                // Header
-                Header()
-                
-                ZStack {
-                    // Image view
-                    if let img = self.inputImage {
-                        Image(uiImage: img)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(width: UIScreen.main.bounds.width * 0.9)
-                            .cornerRadius(25)
-                    }
+        VStack {
+            // Header
+            Header()
                     
-                    AgeInfoTexts(predictedAgeGroup: self.$predictedAgeGroup, isLoading: self.$isLoading)
-                }
+            AgeInfoTexts(predictedAgeGroup: self.$predictedAgeGroup, isLoading: self.$isLoading)
+            
+            // Image view
+            if let img = self.inputImage {
+                Image(uiImage: img)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(height: UIScreen.main.bounds.height * 0.5)
+                    .cornerRadius(25)
             }
+            
+            Spacer()
             
             // How Old Am I? button
             SubmitButton(showSheet: self.$showSheet)
+                .padding(.bottom)
             
         } // Action sheet allowing user to select between using camera roll or taking a realtime photo
         .actionSheet(isPresented: self.$showSheet) {
@@ -75,7 +72,7 @@ struct ContentView: View {
             ImagePicker(image: self.$inputImage, isShown: self.$showingImagePicker, sourceType: self.sourceType)
         }
     }
-    
+
     /// Displays Age Predictor text on top of screen along with pink background
     struct Header: View {
         var body: some View {
@@ -110,39 +107,30 @@ struct ContentView: View {
                     .progressViewStyle(CircularProgressViewStyle(tint: UIPink))
                     .scaleEffect(1.5)
                     .opacity(isLoading ? 1 : 0)
-                
-                Spacer()
             }
             .foregroundColor(.gray)
         }
     }
-    /// Displays submit "How Old Am I?" button at bottom of screen
+    /// Displays submit "How Old Am I?" button
     struct SubmitButton: View {
         @Binding var showSheet: Bool
         
         var body: some View {
-            VStack {
-                Spacer()
-                Button {
-                    self.showSheet = true // Turns on ImagePicker sheet
-                } label: {
-                    Text("How Old Am I ?")
-                        .foregroundColor(.white)
-                        .font(.title)
-                        .padding()
-                        .background(UIPink)
-                        .cornerRadius(15)
-                        .shadow(color: UIPink.opacity(0.7), radius: 20, x: 0, y: 0)
-                }
-                .padding(.bottom)
+
+            Button {
+                self.showSheet = true // Turns on ImagePicker sheet
+            } label: {
+                Text("How Old Am I ?")
+                    .foregroundColor(.white)
+                    .font(.title)
+                    .padding()
+                    .background(UIPink)
+                    .cornerRadius(15)
+                    .shadow(color: UIPink.opacity(0.7), radius: 20, x: 0, y: 0)
             }
+            .padding(.bottom)
         }
     }
-    
-    
-    
-    
-    
     
     /// Is called after Submit Button is pressed and Image is selected.
     ///1. Turns off Image Picker.
@@ -162,11 +150,14 @@ struct ContentView: View {
         self.isLoading = true // Turns on loading view
         // Calls Object Detection Function
         self.numAttemptsToDetectObj = 0
-        detectObjsInImage(image: inputImage,
-                              ROI_SIZE: (inputImage.size.width * ROI_FRACTION, inputImage.size.width * ROI_FRACTION ))
+        
+        // Averages two calculated width and height ROI values to make ROI square-shaped (accurate for facial detection)
+        let averageSize = (inputImage.size.width * ROI_FRACTION.width + inputImage.size.height * ROI_FRACTION.height) / 2
+        let roiSize = CGSize(width: averageSize, height: averageSize)
+        // Calls object detection function
+        detectObjsInImage(image: inputImage, ROI_SIZE: roiSize)
     }
-
-
+    
     /// Processes API Call by sending image to global AI API link
     /// - parameter image: Image to be sent to AI API link.
     /// - parameter completion: completion handler to be executed using AI output once API call finishes.
@@ -211,8 +202,6 @@ struct ContentView: View {
         })
     }
 
-
-
     /// Applies all steps of object detection to output an array of non-overlapping rectangles which are drawn on inputImage
     /// - parameter image: image to be processed for object detection.
     /// - parameter ROI_SIZE: size of image used for slidingWindow() function (should be around the size of the object being detected) is set to 150x150 by default
@@ -223,7 +212,7 @@ struct ContentView: View {
     ///4. Retrieves data from API and adds subimage to arrayOut if it passes a threshold confidenceScore
     ///5. Passes arrayOut to nonMaximumSuppression() function to get rid of overlapping rectangles
     ///6. Calls drawRectangleOnImage() function
-    func detectObjsInImage(image: UIImage, ROI_SIZE: (CGFloat, CGFloat), MIN_CONFIDENCE_SCORE: Double = STARTING_MIN_CONF_SCORE) {
+    func detectObjsInImage(image: UIImage, ROI_SIZE: CGSize, MIN_CONFIDENCE_SCORE: Double = STARTING_MIN_CONF_SCORE) {
         let INPUT_SIZE = (image.size.width, image.size.height) // Dimensions of Original Image
         
         var arrayOut:[((Int, Int, Int, Int), Double)] = [] // Array containing [ ( (X+Y Coordinates for rectangle), Confidence_Score ) ]
@@ -240,12 +229,12 @@ struct ContentView: View {
             let scale = INPUT_SIZE.0 / img.size.width
 
             // Loops through sliding window for every image in image pyramid
-            for (i, j, roiOrig) in img.slidingWindow(step: WIN_STEP, windowSize: (Int(ROI_SIZE.0), Int(ROI_SIZE.1))) {
+            for (i, j, roiOrig) in img.slidingWindow(step: WIN_STEP, windowSize: (Int(ROI_SIZE.width), Int(ROI_SIZE.height))) {
                 // Applies Scale factor to calculate ROI's x and y values adjusted for the original image
                 let I = Int(Double(i) * scale)
                 let J = Int(Double(j) * scale)
-                let w = Int(Double(ROI_SIZE.0) * scale)
-                let h = Int(Double(ROI_SIZE.1) * scale)
+                let w = Int(Double(ROI_SIZE.width) * scale)
+                let h = Int(Double(ROI_SIZE.height) * scale)
 
 
                 apiCall.enter() // Task Enters Dispatch Group before API Call Begins
@@ -274,6 +263,7 @@ struct ContentView: View {
                 // If at least 1 object is detected, calls drawRectangleOnImage() function
                 inputImage = inputImage!.drawRectanglesOnImage(nonMaximumSuppression(arrayOut), color: .systemGreen)
                 self.isLoading = false
+                self.numAttemptsToDetectObj = 0 // Resets number attempts
             } else if self.numAttemptsToDetectObj <= MAX_NUM_ATTEMPTS {
                 // If no objects are detected, program retries detectObjsInImage() function with a lower MIN_CONFIDENCE_SCORE
 
@@ -281,9 +271,11 @@ struct ContentView: View {
                 detectObjsInImage(image: image, ROI_SIZE: ROI_SIZE, MIN_CONFIDENCE_SCORE: MIN_CONFIDENCE_SCORE-0.02)
             } else {
                 self.isLoading = false // Turns off loading screen when all attempts are used up
+                self.numAttemptsToDetectObj = 0 // Resets number attempts
             }
         }) // END APICALL.NOTIFY BLOCK
     }
+    
 }
 
 struct ContentView_Previews: PreviewProvider {

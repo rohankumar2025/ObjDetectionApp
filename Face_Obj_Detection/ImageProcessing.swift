@@ -23,11 +23,10 @@ extension UIImage {
         return resizedImage
     }
     
-    
     /// Returns array of all resized images larger than minX and minY
     /// - parameter scale: scale factor to which image is divided by upon each iteration  (set to 1.5 by default)
     /// - parameter minSize: smallest possible size for resized image at which point algorithm exits
-    func imagePyramid(scale:CGFloat = 1.5, minSize:(CGFloat, CGFloat) = (100, 100)) -> Array<UIImage> {
+    func imagePyramid(scale:CGFloat = 1.5, minSize:CGSize = CGSize(width: 100, height: 100)) -> Array<UIImage> {
         var newImage:UIImage = self.resizeImageTo(size: self.size) // Creates copy of original image
         var arrayOut:Array<UIImage> = [newImage] // Adds original image to pyramid
         
@@ -36,13 +35,12 @@ extension UIImage {
             let targSize = CGSize(width: newImage.size.width / scale, height: newImage.size.height / scale)
             newImage = self.resizeImageTo(size: targSize) // Resizes newImage to targSize
             // Checks if resized image is greater than minX and minY parameters
-            if newImage.size.width >= minSize.0 && newImage.size.height >= minSize.1 {
+            if newImage.size.width >= minSize.width && newImage.size.height >= minSize.height {
                 arrayOut.append(newImage) // Appends newImage if all conditions are met
             } else { break }
         }
         return arrayOut
     }
-    
     
     /// Returns a array of all subimages of original image based on parameters in
     /// - parameter step: step size between slidingWindow subimages
@@ -63,7 +61,6 @@ extension UIImage {
         }
         return arrayOut
     }
-    
     
     /// Takes in array of rectangle coordinates, draws them on top of the image inputted, and returns the edited image
     ///- parameter arrayIn: contains coordinates for all non-overlapping rectangles

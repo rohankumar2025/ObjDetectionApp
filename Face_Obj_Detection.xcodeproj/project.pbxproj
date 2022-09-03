@@ -62,9 +62,9 @@
 			children = (
 				4FFBCBEA28C1E74C005C9993 /* Face_Obj_DetectionApp.swift */,
 				4FFBCBEC28C1E74C005C9993 /* ContentView.swift */,
+				4FFBCC0228C1E82A005C9993 /* ImageProcessing.swift */,
 				4FFBCC0028C1E7F5005C9993 /* ImagePicker.swift */,
 				4FFBCBEE28C1E74D005C9993 /* Assets.xcassets */,
-				4FFBCC0228C1E82A005C9993 /* ImageProcessing.swift */,
 				4FFBCC0428C1E84C005C9993 /* Info.plist */,
 				4FFBCBF028C1E74D005C9993 /* Preview Content */,
 			);
