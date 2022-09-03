@@ -143,7 +143,7 @@ struct ContentView: View {
         // Processes API Call on whole image
         processAPICall(image: inputImage, {(prediction, _) in
             // Displays prediction to UI
-            let convertToAgeGroup = ["Kid": "6-20", "Young Adult": "21-35", "Adult": "36-59", "Elderly": "60+"] // Helper Dictionary to convert AI prediction to Age Group
+            let convertToAgeGroup = ["Kid": "6-20", "Young Adult": "21-35", "Adult": "36-59", "Elderly": "60+"] // Helper Dictionary to convert AI prediction to Age Group (Can delete line if user simply wants to display raw prediction label)
             self.predictedAgeGroup = convertToAgeGroup[prediction] ?? " "
         })
 
