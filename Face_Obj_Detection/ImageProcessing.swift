@@ -131,6 +131,7 @@ func nonMaximumSuppression(_ infoArray:[((Int, Int, Int, Int), Double)]) -> [(In
 }
 
 /// Helper function to check if two rectangles overlap
+/// Adding complexity to this function will increase algorithm's ability to detect multiple objects that are close together
 func isOverlapping(rect1: (Int,Int,Int,Int), rect2: (Int,Int,Int,Int)) -> Bool {
     let THRESH = (rect1.2 - rect1.0) / 20 // Threshold added to detect overlaps (is equal to rectangle width / 20)
     
